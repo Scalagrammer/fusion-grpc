@@ -4,9 +4,6 @@ import io.grpc.*;
 import io.grpc.Metadata.Key;
 import io.grpc.ServerCall.Listener;
 
-
-import java.util.Objects;
-
 import static io.grpc.Metadata.ASCII_STRING_MARSHALLER;
 import static io.grpc.Status.UNAUTHENTICATED;
 import static java.util.Objects.nonNull;
@@ -14,11 +11,11 @@ import static scg.fusion.grpc.security.Authorization.UNAUTHORIZED;
 
 public abstract class AuthInterceptor implements ServerInterceptor {
 
-    public static final Context.Key<Authorization> AUTHORIZATION = Context.keyWithDefault("Authorization", UNAUTHORIZED);
+    public static final Context.Key<Authorization<?, ?, ?>> AUTHORIZATION = Context.keyWithDefault("Authorization", UNAUTHORIZED);
 
     public static final Metadata.Key<String> AUTH_HEADER = Key.of("Authorization", ASCII_STRING_MARSHALLER);
 
-    protected abstract Authorization authenticate(String header);
+    protected abstract <G extends GrantedAuthority, P extends Principal, C extends Credentials, A extends Authorization<G, P, C>> A authenticate(String header) throws Throwable;
 
     @Override
     public final  <ReqT, RespT> Listener<ReqT> interceptCall(ServerCall<ReqT, RespT> serverCall, Metadata metadata, ServerCallHandler<ReqT, RespT> serverCallHandler) {
@@ -26,7 +23,7 @@ public abstract class AuthInterceptor implements ServerInterceptor {
         try {
             if (metadata.containsKey(AUTH_HEADER)) {
 
-                Authorization authorization = authenticate(metadata.get(AUTH_HEADER));
+                Authorization<?, ?, ?> authorization = authenticate(metadata.get(AUTH_HEADER));
 
                 if (nonNull(authorization)) {
 
